@@ -1,23 +1,24 @@
 <template>
   <div class="racers-holder">
     <div
-      class="racer-item"
+      class="racer-row"
       v-for="(racer, index) in shortenedRacers"
       :key="racer.RacerSource"
       :class="{
-        'current-player': index === globalStore.activeRace.position - 1,
-        'first-place': index === 0,
-        'second-place': index === 1,
-        'third-place': index === 2
+        'current-player': index === globalStore.activeRace.position - 1
       }"
     >
-      <div class="position-number">{{ index + 1 }}</div>
-      <span class="racer-name">{{ racer.RacerName }}</span>
-      <span class="time-difference" v-if="index === 0 && racer.Finished">{{ translate('winner') }}</span>
-      <span class="time-difference" v-else-if="racer.Finished">{{ translate('finished') }}</span>
-      <span class="time-difference" v-else-if="index !== globalStore.activeRace.position - 1">
-        {{ getTimeDifference(racers[globalStore.activeRace.position - 1], racer) }}
-      </span>
+      <div class="position-number" :class="getPositionClass(index)">
+        {{ index + 1 }}
+      </div>
+      <div class="racer-details">
+        <span class="racer-name">{{ racer.RacerName }}</span>
+        <span class="time-diff" v-if="index === 0 && racer.Finished">{{ translate('winner') }}</span>
+        <span class="time-diff" v-else-if="racer.Finished">{{ translate('finished') }}</span>
+        <span class="time-diff" v-else-if="index !== globalStore.activeRace.position - 1">
+          {{ getTimeDifference(racers[globalStore.activeRace.position - 1], racer) }}
+        </span>
+      </div>
     </div>
   </div>
 </template>
@@ -33,12 +34,20 @@ const props = defineProps<{
 }>();
 
 const globalStore = useGlobalStore();
+
 const shortenedRacers = computed(() =>
   props.racers?.slice(
     0,
     globalStore.baseData?.data?.hudSettings?.maxPositions || 5
   )
 );
+
+const getPositionClass = (index: number) => {
+  if (index === 0) return 'first-place';
+  if (index === 1) return 'second-place';
+  if (index === 2) return 'third-place';
+  return 'other-place';
+};
 
 const formatTimeDifference = (timeDiffMs: number): string => {
   if (timeDiffMs === 0) {
@@ -47,8 +56,6 @@ const formatTimeDifference = (timeDiffMs: number): string => {
 
   const isAhead = timeDiffMs > 0;
   const absoluteDiffSeconds = Math.abs(timeDiffMs) / 1000;
-
-  // Format to 3 decimal places
   const formattedTime = absoluteDiffSeconds.toFixed(3);
 
   return isAhead ? `+${formattedTime}` : `-${formattedTime}`;
@@ -59,16 +66,14 @@ const getTimeDifference = (racer1: ActiveRacer, racer2: ActiveRacer) => {
   const racer2Checkpoints = racer2.CheckpointTimes.length;
 
   if (racer1Checkpoints === 0 || racer2Checkpoints === 0) {
-    return ''; // Not enough data to compare
+    return '';
   }
 
   const lastCommonCheckpoint = Math.min(racer1Checkpoints, racer2Checkpoints) - 1;
   const racer1Time = racer1.CheckpointTimes[lastCommonCheckpoint].time;
   const racer2Time = racer2.CheckpointTimes[lastCommonCheckpoint].time;
 
-  const timeDifference = formatTimeDifference(racer2Time - racer1Time);
-
-  return timeDifference;
+  return formatTimeDifference(racer2Time - racer1Time);
 };
 </script>
 
@@ -76,86 +81,64 @@ const getTimeDifference = (racer1: ActiveRacer, racer2: ActiveRacer) => {
 .racers-holder {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 250px;
+  gap: 2px;
+  min-width: 220px;
 }
 
-.racer-item {
+.racer-row {
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 4px;
+  padding: 6px 8px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 6px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
+  gap: 8px;
+  transition: all 0.2s ease;
 }
 
-.racer-item.current-player {
+.racer-row.current-player {
   background: rgba(76, 175, 80, 0.3);
-  border-color: #4CAF50;
-  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
-}
-
-.racer-item.first-place {
-  background: rgba(255, 193, 7, 0.2);
-  border-color: #FFC107;
-}
-
-.racer-item.second-place {
-  background: rgba(158, 158, 158, 0.2);
-  border-color: #9E9E9E;
-}
-
-.racer-item.third-place {
-  background: rgba(205, 127, 50, 0.2);
-  border-color: #CD7F32;
+  border: 1px solid #4CAF50;
 }
 
 .position-number {
-  background: #4CAF50;
-  color: #000;
-  font-weight: 700;
-  font-size: 12px;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+  color: #000;
   flex-shrink: 0;
+  background: #4CAF50;
 }
 
-.first-place .position-number {
-  background: #FFC107;
-}
-
-.second-place .position-number {
-  background: #9E9E9E;
-}
-
-.third-place .position-number {
-  background: #CD7F32;
+.racer-details {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
 .racer-name {
-  color: #fff;
+  color: #ffffff;
   font-weight: 500;
-  font-size: 13px;
-  flex: 1;
+  font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
 }
 
-.time-difference {
-  color: #4CAF50;
+.time-diff {
+  color: #ffffff;
   font-weight: 600;
-  font-size: 11px;
+  font-size: 10px;
   font-family: 'Roboto Mono', monospace;
-  min-width: 60px;
   text-align: right;
+  min-width: 60px;
 }
 </style>
 </template>

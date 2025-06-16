@@ -1,65 +1,66 @@
 <template>
   <div class="race">
-    <!-- Left side - Race info -->
-    <div class="race-info-container">
-      <div class="race-info-block">
-        <div class="lap-info">
-          <v-icon icon="mdi-flag-checkered" class="lap-icon"></v-icon>
-          <span class="lap-text">LAP {{ globalStore.activeRace.currentLap }}/{{ lapText }}</span>
-          <span class="last-lap-text" v-if="globalStore.activeRace.currentLap > 1">LAST LAP</span>
+    <!-- Left side - Race info panel exactly like the image -->
+    <div class="race-info-panel">
+      <!-- Lap section -->
+      <div class="lap-section">
+        <div class="lap-indicator">
+          <v-icon icon="mdi-flag-checkered" class="flag-icon"></v-icon>
+          <span class="lap-text">LAP {{ globalStore.activeRace.currentLap }}/{{ lapDisplayText }}</span>
         </div>
-        
-        <div class="time-info">
-          <div class="time-row">
-            <v-icon icon="mdi-timer-outline" class="time-icon"></v-icon>
-            <span class="time-label">TOTAL</span>
-            <span class="time-value">{{ msToHMS(globalStore.activeRace.totalTime) }}</span>
-          </div>
-          
-          <div class="time-row">
-            <v-icon icon="mdi-timer-sync-outline" class="time-icon"></v-icon>
-            <span class="time-label">CURRENT</span>
-            <span class="time-value">{{ msToHMS(globalStore.activeRace.time) }}</span>
-          </div>
-          
-          <div class="time-row">
-            <v-icon icon="mdi-timer-star-outline" class="time-icon"></v-icon>
-            <span class="time-label">BEST</span>
-            <span class="time-value">{{ msToHMS(globalStore.activeRace.bestLap) }}</span>
-          </div>
-          
-          <div class="time-row">
-            <v-icon icon="mdi-map-marker-check" class="time-icon"></v-icon>
-            <span class="time-label">CHECKPOINT</span>
-            <span class="time-value">{{ globalStore.activeRace.currentCheckpoint }}/{{ globalStore.activeRace.totalCheckpoints }}</span>
-          </div>
-        </div>
+        <div class="last-lap-badge" v-if="isLastLap">LAST LAP</div>
+      </div>
+      
+      <!-- Time sections -->
+      <div class="time-section">
+        <v-icon icon="mdi-timer-outline" class="time-icon"></v-icon>
+        <span class="time-label">TOTAL</span>
+        <span class="time-value">{{ msToHMS(globalStore.activeRace.totalTime) }}</span>
+      </div>
+      
+      <div class="time-section">
+        <v-icon icon="mdi-timer-sync-outline" class="time-icon"></v-icon>
+        <span class="time-label">CURRENT</span>
+        <span class="time-value">{{ msToHMS(globalStore.activeRace.time) }}</span>
+      </div>
+      
+      <div class="time-section">
+        <v-icon icon="mdi-star-outline" class="time-icon"></v-icon>
+        <span class="time-label">BEST</span>
+        <span class="time-value">{{ msToHMS(globalStore.activeRace.bestLap) }}</span>
+      </div>
+      
+      <div class="time-section">
+        <v-icon icon="mdi-map-marker-check-outline" class="time-icon"></v-icon>
+        <span class="time-label">CHECKPOINT</span>
+        <span class="time-value">{{ globalStore.activeRace.currentCheckpoint }}/{{ globalStore.activeRace.totalCheckpoints }}</span>
       </div>
     </div>
 
-    <!-- Right side - Leaderboard -->
-    <div class="leaderboard-container">
+    <!-- Right side - Leaderboard exactly like the image -->
+    <div class="leaderboard-panel">
       <div 
-        class="leaderboard-item"
+        class="leaderboard-row"
         v-for="(racer, index) in shortenedRacers"
         :key="racer.RacerSource"
         :class="{
-          'current-player': index === globalStore.activeRace.position - 1,
-          'first-place': index === 0,
-          'second-place': index === 1,
-          'third-place': index === 2
+          'current-player': index === globalStore.activeRace.position - 1
         }"
       >
-        <div class="position-number">{{ index + 1 }}</div>
-        <div class="racer-name">{{ racer.RacerName }}</div>
-        <div class="racer-time" v-if="index === 0 && racer.Finished">
-          {{ translate('winner') }}
+        <div class="position-badge" :class="getPositionClass(index)">
+          {{ index + 1 }}
         </div>
-        <div class="racer-time" v-else-if="racer.Finished">
-          {{ translate('finished') }}
-        </div>
-        <div class="racer-time" v-else-if="index !== globalStore.activeRace.position - 1">
-          {{ getTimeDifference(racers[globalStore.activeRace.position - 1], racer) }}
+        <div class="racer-info">
+          <span class="racer-name">{{ racer.RacerName }}</span>
+          <span class="racer-time" v-if="index === 0 && racer.Finished">
+            {{ translate('winner') }}
+          </span>
+          <span class="racer-time" v-else-if="racer.Finished">
+            {{ translate('finished') }}
+          </span>
+          <span class="racer-time" v-else-if="index !== globalStore.activeRace.position - 1">
+            {{ getTimeDifference(racers[globalStore.activeRace.position - 1], racer) }}
+          </span>
         </div>
       </div>
     </div>
@@ -67,7 +68,6 @@
     <!-- Ghosted indicator -->
     <div class="ghosted-indicator" v-if="globalStore.activeRace.ghosted">
       <v-icon icon="mdi-ghost-outline"></v-icon>
-      <span>GHOSTED</span>
     </div>
   </div>
 </template>
@@ -94,11 +94,23 @@ const shortenedRacers = computed(() =>
   )
 );
 
-const lapText = computed(() => {
+const lapDisplayText = computed(() => {
   if (globalStore.activeRace.totalLaps === 0) return "∞";
   else if (globalStore.activeRace.totalLaps === -1) return "∞";
   return globalStore.activeRace.totalLaps.toString();
 });
+
+const isLastLap = computed(() => {
+  return globalStore.activeRace.totalLaps > 0 && 
+         globalStore.activeRace.currentLap === globalStore.activeRace.totalLaps;
+});
+
+const getPositionClass = (index: number) => {
+  if (index === 0) return 'first-place';
+  if (index === 1) return 'second-place';
+  if (index === 2) return 'third-place';
+  return 'other-place';
+};
 
 const formatTimeDifference = (timeDiffMs: number): string => {
   if (timeDiffMs === 0) {
@@ -107,8 +119,6 @@ const formatTimeDifference = (timeDiffMs: number): string => {
 
   const isAhead = timeDiffMs > 0;
   const absoluteDiffSeconds = Math.abs(timeDiffMs) / 1000;
-
-  // Format to 3 decimal places
   const formattedTime = absoluteDiffSeconds.toFixed(3);
 
   return isAhead ? `+${formattedTime}` : `-${formattedTime}`;
@@ -119,17 +129,14 @@ const getTimeDifference = (racer1: ActiveRacer, racer2: ActiveRacer) => {
   const racer2Checkpoints = racer2.CheckpointTimes.length;
 
   if (racer1Checkpoints === 0 || racer2Checkpoints === 0) {
-    return ''; // Not enough data to compare
+    return '';
   }
 
   const lastCommonCheckpoint = Math.min(racer1Checkpoints, racer2Checkpoints) - 1;
   const racer1Time = racer1.CheckpointTimes[lastCommonCheckpoint].time;
   const racer2Time = racer2.CheckpointTimes[lastCommonCheckpoint].time;
 
-  const timeDifference = formatTimeDifference(racer2Time - racer1Time);
-
-  // Positive if racer1 is ahead, negative if racer2 is ahead
-  return timeDifference;
+  return formatTimeDifference(racer2Time - racer1Time);
 };
 </script>
 
@@ -147,166 +154,163 @@ const getTimeDifference = (racer1: ActiveRacer, racer2: ActiveRacer) => {
   pointer-events: none;
 }
 
-.race-info-container {
+/* Left panel - Race info (exactly like the image) */
+.race-info-panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 2px;
 }
 
-.race-info-block {
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 8px;
-  padding: 15px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.lap-info {
+.lap-section {
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 4px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 4px;
+  border-left: 3px solid #4CAF50;
 }
 
-.lap-icon {
+.lap-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.flag-icon {
   color: #4CAF50;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .lap-text {
   color: #4CAF50;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   text-transform: uppercase;
 }
 
-.last-lap-text {
-  color: #888;
-  font-size: 12px;
+.last-lap-badge {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
   text-transform: uppercase;
   margin-left: auto;
 }
 
-.time-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.time-row {
+.time-section {
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 4px;
+  padding: 6px 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  margin-bottom: 2px;
   min-width: 200px;
 }
 
 .time-icon {
   color: #4CAF50;
-  font-size: 16px;
-  width: 20px;
+  font-size: 14px;
+  width: 16px;
 }
 
 .time-label {
-  color: #fff;
+  color: #ffffff;
   font-weight: 500;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
-  min-width: 80px;
+  min-width: 70px;
 }
 
 .time-value {
   color: #4CAF50;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 12px;
   font-family: 'Roboto Mono', monospace;
   margin-left: auto;
 }
 
-.leaderboard-container {
+/* Right panel - Leaderboard (exactly like the image) */
+.leaderboard-panel {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 250px;
+  gap: 2px;
+  min-width: 220px;
 }
 
-.leaderboard-item {
+.leaderboard-row {
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 4px;
+  padding: 6px 8px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 6px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
+  gap: 8px;
+  transition: all 0.2s ease;
 }
 
-.leaderboard-item.current-player {
+.leaderboard-row.current-player {
   background: rgba(76, 175, 80, 0.3);
-  border-color: #4CAF50;
-  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+  border: 1px solid #4CAF50;
 }
 
-.leaderboard-item.first-place {
-  background: rgba(255, 193, 7, 0.2);
-  border-color: #FFC107;
-}
-
-.leaderboard-item.second-place {
-  background: rgba(158, 158, 158, 0.2);
-  border-color: #9E9E9E;
-}
-
-.leaderboard-item.third-place {
-  background: rgba(205, 127, 50, 0.2);
-  border-color: #CD7F32;
-}
-
-.position-number {
-  background: #4CAF50;
-  color: #000;
-  font-weight: 700;
-  font-size: 12px;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
+.position-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+  color: #000;
   flex-shrink: 0;
 }
 
-.first-place .position-number {
-  background: #FFC107;
+.position-badge.first-place {
+  background: #4CAF50;
 }
 
-.second-place .position-number {
-  background: #9E9E9E;
+.position-badge.second-place {
+  background: #4CAF50;
 }
 
-.third-place .position-number {
-  background: #CD7F32;
+.position-badge.third-place {
+  background: #4CAF50;
+}
+
+.position-badge.other-place {
+  background: #4CAF50;
+}
+
+.racer-info {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
 .racer-name {
-  color: #fff;
+  color: #ffffff;
   font-weight: 500;
-  font-size: 13px;
-  flex: 1;
+  font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
 }
 
 .racer-time {
-  color: #4CAF50;
+  color: #ffffff;
   font-weight: 600;
-  font-size: 11px;
+  font-size: 10px;
   font-family: 'Roboto Mono', monospace;
-  min-width: 60px;
   text-align: right;
+  min-width: 60px;
 }
 
 .ghosted-indicator {
@@ -324,8 +328,6 @@ const getTimeDifference = (racer1: ActiveRacer, racer2: ActiveRacer) => {
   font-weight: 600;
   font-size: 14px;
   text-transform: uppercase;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Responsive adjustments */
@@ -335,11 +337,11 @@ const getTimeDifference = (racer1: ActiveRacer, racer2: ActiveRacer) => {
     right: 10px;
   }
   
-  .leaderboard-container {
-    min-width: 200px;
+  .leaderboard-panel {
+    min-width: 180px;
   }
   
-  .time-row {
+  .time-section {
     min-width: 180px;
   }
 }
@@ -347,10 +349,10 @@ const getTimeDifference = (racer1: ActiveRacer, racer2: ActiveRacer) => {
 @media (max-width: 768px) {
   .race {
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
   }
   
-  .leaderboard-container {
+  .leaderboard-panel {
     min-width: auto;
     width: 100%;
   }
